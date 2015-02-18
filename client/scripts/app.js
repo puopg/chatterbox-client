@@ -42,12 +42,14 @@ var FormView = Backbone.View.extend({
   handleSubmit: function() {
     var $text = this.$('#sendMessageBoxText');
     var $user = this.$('#sendMessageBoxUser');
+    var room = $('#roomChoiceText').val();
 
     this.startSpinner();
 
     this.collection.create({
       username: $user.val(),
-      text: $text.val()
+      text: $text.val(),
+      roomname: room
     });
 
     $text.val('');
@@ -87,7 +89,7 @@ var FormView = Backbone.View.extend({
 var MessageView = Backbone.View.extend({
 
   template: _.template('<div class="chat" data-id="<%= objectId %>"> \
-                      <div class="user" data-user="<%- username %>"><%- username %></div> \
+                      <div class="user <%- friend %>" data-user="<%- username %>"><%- username %></div> \
                       <div class="text"><%- text %></div> \
                       </div>'),
 
@@ -112,23 +114,20 @@ var MessagesView = Backbone.View.extend({
     if(!this.collection.friends[name]){
       console.log("Adding " + name + " to friends list")
       this.collection.friends[name] = true;
-      this.decorateFriend(name);
+      this.friendUser(name);
     }
     else {
       console.log("Removing " + name + " from friends list")
       delete this.collection.friends[name];
-      this.unDecorateFriend(name);
+      this.unfriendUser(name);
     }
-
-
-
   },
 
-  decorateFriend: function(name){
+  friendUser: function(name){
     $("[data-user='" + name + "']").addClass('friend');
   },
 
-  unDecorateFriend: function(name){
+  unfriendUser: function(name){
     $("[data-user='" + name + "']").removeClass('friend');
   },
 
@@ -139,7 +138,16 @@ var MessagesView = Backbone.View.extend({
   renderMessage: function(message) {
     if (!this.collection.displayedMessages[message.get('objectId')]) {
       var messageView = new MessageView({model: message});
-      this.$el.prepend(messageView.render());
+      var name = message.get('username');
+
+      // If the message's user is found in our friends list, add friend attribute
+      if (this.collection.friends[name])
+          message.set('friend', 'friend');
+      else
+          message.set('friend', '');
+
+      var newElement = messageView.render();
+      this.$el.prepend(newElement);
       this.collection.displayedMessages[message.get('objectId')] = true;
     }
   }
